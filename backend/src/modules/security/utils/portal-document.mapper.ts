@@ -118,6 +118,18 @@ function buildPages(blocks: ClauseBlock[]): PortalPage[] {
   return [...contentPages, { id: lastId + 1, type: "signatures", title: "Assinaturas" }];
 }
 
+export function isApagaLogoContract(contract: {
+  clienteId: string;
+  editorSettings: unknown;
+}): boolean {
+  const settings = contract.editorSettings;
+  if (settings && typeof settings === "object") {
+    const origem = (settings as { origem?: string }).origem;
+    if (origem === "apaga-logo") return true;
+  }
+  return contract.clienteId === "standalone";
+}
+
 export function mapContractToPortalMeta(contract: ContractWithRelations) {
   return {
     id: contract.id,
@@ -127,6 +139,7 @@ export function mapContractToPortalMeta(contract: ContractWithRelations) {
     status: contract.status,
     clientName: contract.cliente.nome,
     companyName: contract.cliente.empresa,
+    isApagaLogo: isApagaLogoContract(contract),
   };
 }
 
@@ -145,6 +158,26 @@ function extractClientDocument(contract: ContractWithRelations): string {
   return "";
 }
 
+function extractContratadoNome(contract: ContractWithRelations): string {
+  const conteudo = contract.conteudo;
+  if (conteudo && typeof conteudo === "object") {
+    const vars = (conteudo as { variaveis?: Record<string, string> }).variaveis;
+    if (vars?.empresa?.trim()) return vars.empresa.trim();
+  }
+  return "";
+}
+
+
+function extractPartyPhotos(contract: ContractWithRelations) {
+  const settings = contract.editorSettings;
+  if (!settings || typeof settings !== "object") return undefined;
+  const s = settings as { fotoContratado?: unknown; fotoCliente?: unknown };
+  const contratado = typeof s.fotoContratado === "string" ? s.fotoContratado : "";
+  const cliente = typeof s.fotoCliente === "string" ? s.fotoCliente : "";
+  if (!contratado && !cliente) return undefined;
+  return { contratado: contratado || undefined, cliente: cliente || undefined };
+}
+
 export function mapContractToPortalDocument(contract: ContractWithRelations) {
   const blocks = parseClauseBlocks(contract.clauseBlocks);
   const pages = buildPages(blocks);
@@ -154,6 +187,8 @@ export function mapContractToPortalDocument(contract: ContractWithRelations) {
   const clientSig = signatures.find((s) => /cliente/i.test(s.role));
   const noraxSig = signatures.find((s) => /norax|empresa/i.test(s.role));
   const clientDoc = clientSig?.documento || extractClientDocument(contract);
+  const apagaLogo = isApagaLogoContract(contract);
+  const contratadoNome = extractContratadoNome(contract);
 
   return {
     id: contract.id,
@@ -164,14 +199,14 @@ export function mapContractToPortalDocument(contract: ContractWithRelations) {
     statusLabel: STATUS_LABEL[contract.status],
     statusVariant: STATUS_VARIANT[contract.status],
     company: {
-      name: "Norax",
-      legalName: "Norax Digital Ltda",
-      cnpj: "12.345.678/0001-90",
+      name: apagaLogo ? contratadoNome || "Contratado" : "Norax",
+      legalName: apagaLogo ? contratadoNome : "Norax Digital Ltda",
+      cnpj: apagaLogo ? "" : "12.345.678/0001-90",
       address: "Av. Paulista, 1000",
       city: "São Paulo — SP",
       email: "contato@norax.dev",
       phone: "(11) 3000-0000",
-      representative: "Norax",
+      representative: apagaLogo ? contratadoNome || "Contratado" : "Norax",
     },
     client: {
       name: contract.cliente.nome,
@@ -185,7 +220,7 @@ export function mapContractToPortalDocument(contract: ContractWithRelations) {
     },
     value: valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
     valueRaw: valor,
-    paymentMethod: contract.formaPagamento,
+    paymentMethod: apagaLogo ? "50% antes\n50% no final" : contract.formaPagamento,
     installments: `${contract.parcelas}x`,
     deadline: contract.prazo ? formatDateBR(contract.prazo) : "—",
     template: "Prestação de Serviços",
@@ -233,6 +268,8 @@ export function mapContractToPortalDocument(contract: ContractWithRelations) {
       lastAccess: "—",
       ip: "—",
     },
+    isApagaLogo: apagaLogo,
+    partyPhotos: apagaLogo ? extractPartyPhotos(contract) : undefined,
     totalPages: pages.length,
     pages,
     accessCode: "",

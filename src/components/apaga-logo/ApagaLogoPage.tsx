@@ -16,6 +16,8 @@ import { getContractAdminPath } from "@/lib/contract-routes";
 import { useAppState } from "@/contexts/app-context";
 import { useFeedback } from "@/contexts/feedback-context";
 import { OpeningContractOverlay } from "@/components/contract-view/OpeningContractOverlay";
+import { PhotoDropField } from "@/components/apaga-logo/PhotoDropField";
+import { APAGA_LOGO_FORMA_PAGAMENTO, APAGA_LOGO_FORMA_PAGAMENTO_LINHAS } from "@/lib/apaga-logo";
 
 function blocksToClauses(blocks: ClauseBlock[]): ContractClause[] {
   return renumberBlocks(blocks).map((b) => ({
@@ -42,6 +44,8 @@ export function ApagaLogoPage() {
   const [cliente, setCliente] = useState("");
   const [valor, setValor] = useState("");
   const [prazo, setPrazo] = useState("");
+  const [fotoContratado, setFotoContratado] = useState("");
+  const [fotoCliente, setFotoCliente] = useState("");
   const [blocks, setBlocks] = useState<ClauseBlock[]>([
     { id: "blk-1", titulo: "", paragrafos: [""], ordem: 0 },
   ]);
@@ -64,7 +68,10 @@ export function ApagaLogoPage() {
         empresa: empresa.trim(),
         cliente: cliente.trim(),
         valor: Number(valor) || 0,
+        formaPagamento: APAGA_LOGO_FORMA_PAGAMENTO,
         prazo: prazo || undefined,
+        fotoContratado: fotoContratado || undefined,
+        fotoCliente: fotoCliente || undefined,
       });
 
       void import("@/modules/electronic-contracts/sync-api").then(
@@ -108,12 +115,12 @@ export function ApagaLogoPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-muted-foreground">Nome da empresa</label>
+            <label className="text-xs text-muted-foreground">Seu nome (contratado)</label>
             <Input
               value={empresa}
               onChange={(e) => setEmpresa(e.target.value)}
               className="mt-1 h-10"
-              placeholder="Sua empresa"
+              placeholder="Seu nome"
             />
           </div>
           <div>
@@ -126,7 +133,7 @@ export function ApagaLogoPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Valor (R$)</label>
+            <label className="text-xs text-muted-foreground">Valor total (R$)</label>
             <Input
               value={valor}
               onChange={(e) => setValor(e.target.value)}
@@ -134,6 +141,12 @@ export function ApagaLogoPage() {
               className="mt-1 h-10"
               placeholder="0,00"
             />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Forma de pagamento</label>
+            <div className="mt-1 min-h-10 rounded-lg border border-border bg-surface-inset px-3 py-1.5 flex items-center text-sm text-foreground whitespace-pre-line leading-tight">
+              {APAGA_LOGO_FORMA_PAGAMENTO_LINHAS}
+            </div>
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Data do prazo</label>
@@ -144,6 +157,19 @@ export function ApagaLogoPage() {
               className="mt-1 h-10"
             />
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <PhotoDropField
+            label="Sua foto"
+            value={fotoContratado}
+            onChange={setFotoContratado}
+          />
+          <PhotoDropField
+            label="Foto do cliente"
+            value={fotoCliente}
+            onChange={setFotoCliente}
+          />
         </div>
 
         <p className="text-[11px] text-muted-foreground">

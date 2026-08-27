@@ -195,6 +195,9 @@ export const electronicContractService = {
     cliente?: string;
     valor?: number;
     prazo?: string;
+    formaPagamento?: string;
+    fotoContratado?: string;
+    fotoCliente?: string;
   }): ElectronicContract {
     const seed = getSeedData();
     const responsavel = seed.users.find((u) => u.role !== "cliente") ?? seed.users[0];
@@ -211,7 +214,7 @@ export const electronicContractService = {
       projetoId: "standalone",
       titulo: input.titulo,
       valor,
-      formaPagamento: "—",
+      formaPagamento: input.formaPagamento?.trim() || "50% antes 50% no final",
       parcelas: 1,
       prazo,
       responsavelId: responsavel?.id ?? "system",
@@ -242,7 +245,11 @@ export const electronicContractService = {
         telefone: "",
         email: "",
       },
-      editorSettings: {},
+      editorSettings: {
+        origem: "apaga-logo",
+        ...(input.fotoContratado ? { fotoContratado: input.fotoContratado } : {}),
+        ...(input.fotoCliente ? { fotoCliente: input.fotoCliente } : {}),
+      },
       assinaturas: [],
       dispositivosAutorizados: [],
       solicitacoesDispositivo: [],
@@ -276,7 +283,7 @@ export const electronicContractService = {
     if (contract.isImmutable) throw new Error("Contrato definitivo não pode ser editado");
 
     contract.clausulas = clausulas;
-    contract.editorSettings = settings;
+    contract.editorSettings = { ...contract.editorSettings, ...settings };
     if (contract.lifecycleStep === "criado") {
       advance(contract, "editado", contract.responsavelNome);
     }

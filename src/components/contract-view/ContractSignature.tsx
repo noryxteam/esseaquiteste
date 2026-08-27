@@ -26,6 +26,7 @@ function PartyCard({
   title,
   document,
   sentLabel,
+  photoUrl,
   onSign,
 }: {
   sig?: SigType;
@@ -33,6 +34,7 @@ function PartyCard({
   title: string;
   document: string;
   sentLabel?: string;
+  photoUrl?: string;
   onSign?: () => void;
 }) {
   const signed = sig?.status === "assinado";
@@ -67,7 +69,10 @@ function PartyCard({
             role === "norax" ? "bg-[#18181b]" : "bg-[#f4f4f5] text-[#71717a]"
           )}
         >
-          {role === "norax" ? (
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+          ) : role === "norax" ? (
             <NoraxLogo invert className="h-6 w-auto" />
           ) : (
             <User className="h-5 w-5" />
@@ -210,6 +215,7 @@ export function ContractSignature({ data, onRequestSign }: ContractSignatureProp
           role="norax"
           title={data.company.legalName || data.company.name || "Norax Digital Ltda"}
           document={data.company.cnpj}
+          photoUrl={data.partyPhotos?.contratado}
           onSign={() => onRequestSign?.("norax")}
         />
         <PartyCard
@@ -217,6 +223,7 @@ export function ContractSignature({ data, onRequestSign }: ContractSignatureProp
           role="cliente"
           title={data.client.company || data.client.name || "Cliente"}
           document={data.client.cpfCnpj}
+          photoUrl={data.partyPhotos?.cliente}
           sentLabel={
             data.sentAt && data.sentAt !== "—"
               ? `Convite enviado em ${data.sentAt}`

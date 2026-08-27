@@ -75,6 +75,10 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (doc.isApagaLogo) {
+        if (!cancelled) setCanSign(true);
+        return;
+      }
       try {
         if (hasAdminPanelSession()) {
           if (!cancelled) setCanSign(true);
@@ -93,7 +97,7 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
     return () => {
       cancelled = true;
     };
-  }, [doc.id, doc.uniqueSlug]);
+  }, [doc.id, doc.uniqueSlug, doc.isApagaLogo]);
 
   const goToPage = useCallback((page: number) => {
     const next = Math.min(doc.totalPages, Math.max(1, page));
@@ -181,7 +185,7 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
       showInfo("Este campo é reservado para a assinatura da Norax.");
       return;
     }
-    if (role === "cliente" && isAdmin) {
+    if (role === "cliente" && isAdmin && !doc.isApagaLogo) {
       showInfo("Este campo é reservado para a assinatura do cliente.");
       return;
     }

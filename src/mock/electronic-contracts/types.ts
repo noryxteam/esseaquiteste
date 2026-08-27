@@ -112,6 +112,9 @@ export interface ContractEditorSettings {
   cabecalho?: string;
   rodape?: string;
   observacoes?: string;
+  origem?: "apaga-logo";
+  fotoContratado?: string;
+  fotoCliente?: string;
 }
 
 export interface ElectronicContract {

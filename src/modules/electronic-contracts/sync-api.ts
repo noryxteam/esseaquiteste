@@ -41,10 +41,15 @@ function buildClientSnapshot(contract: ElectronicContract) {
   const setup = getClientSetup(contract.clienteId);
   const personal = setup?.personal;
 
+  const isApagaLogo =
+    contract.editorSettings?.origem === "apaga-logo" || contract.clienteId === "standalone";
   const nome =
     personal?.nome || mock?.nome || row?.contactName || contract.variaveis.cliente || "Cliente";
-  const empresa =
-    personal?.empresa || mock?.empresa || row?.name || contract.variaveis.empresa || nome;
+  const empresa = (
+    isApagaLogo
+      ? personal?.empresa || mock?.empresa || row?.name || nome
+      : personal?.empresa || mock?.empresa || row?.name || contract.variaveis.empresa || nome
+  ).trim() || nome;
   const email =
     personal?.email || mock?.email || (row?.email !== "—" ? row?.email : "") || contract.variaveis.email || "";
   const emailNotificacao = setup?.service?.emailRecuperacao?.trim() || null;
@@ -77,6 +82,12 @@ function buildProjectSnapshot(contract: ElectronicContract) {
   };
 }
 
+function sanitizePaymentMethod(value: string | undefined): string {
+  const trimmed = (value || "").trim();
+  if (!trimmed || trimmed === "—" || trimmed === "-") return "PIX";
+  return trimmed.slice(0, 50);
+}
+
 /** Sincroniza o contrato eletrônico com o banco (fonte da verdade das URLs públicas). */
 export async function syncElectronicContractToBackend(
   contract: ElectronicContract
@@ -97,12 +108,12 @@ export async function syncElectronicContractToBackend(
         lifecycleStep: LIFECYCLE_MAP[contract.lifecycleStep] ?? "CRIADO",
         versao: contract.versao,
         isImmutable: contract.isImmutable,
-        formaPagamento: contract.formaPagamento || "PIX",
+        formaPagamento: sanitizePaymentMethod(contract.formaPagamento),
         parcelas: contract.parcelas || 1,
         prazo: contract.prazo,
         responsavelId: contract.responsavelId || null,
-        link: contract.shareLink || null,
-        hashDocumento: contract.hashDocumento || null,
+        link: contract.shareLink?.trim() || null,
+        hashDocumento: contract.hashDocumento?.trim() || null,
         accessCode: contract.accessCode,
         dataEnvio: contract.dataEnvio,
         dataAssinatura: contract.dataAssinatura,
@@ -141,7 +152,8 @@ export async function ensureContractSyncedInBackend(
 
 export function syncElectronicContractInBackground(contract: ElectronicContract): void {
   void syncElectronicContractToBackend(contract).catch((err) => {
-    console.error("[norax] Falha ao sincronizar contrato com o banco:", err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[norax] Falha ao sincronizar contrato com o banco:", message);
   });
 }
 

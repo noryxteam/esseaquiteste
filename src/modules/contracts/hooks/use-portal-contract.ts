@@ -77,7 +77,8 @@ export function usePortalContract(
           `[perf] portal.access ${slug} ${Math.round(performance.now() - t1)}ms auth=${authorized}`
         );
 
-        if (!authorized) {
+        const openAccess = Boolean(resolved.data.isApagaLogo);
+        if (!authorized && !openAccess) {
           setPhase("needs_access");
           console.info(
             `[perf] portal.total ${slug} ${Math.round(performance.now() - started)}ms (gate)`

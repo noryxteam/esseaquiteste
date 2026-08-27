@@ -132,6 +132,8 @@ export interface PortalContractMeta {
   status: string;
   clientName: string;
   companyName: string;
+  /** Contrato avulso da aba Apaga Logo — acesso aberto, sem gate de dispositivo. */
+  isApagaLogo?: boolean;
 }
 
 export interface PortalSessionResult {

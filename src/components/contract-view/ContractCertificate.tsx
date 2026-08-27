@@ -56,14 +56,18 @@ export function ContractCertificate({
           <span className="text-[#a1a1aa]">Data de emissão</span>
           <span>{data.issuedAt}</span>
         </div>
-        <div className="flex justify-between gap-2 border-b border-[#f4f4f5] pb-2">
-          <span className="text-[#a1a1aa]">Código único</span>
-          <span className="font-mono">{data.uniqueCode}</span>
-        </div>
-        <div className="flex justify-between gap-2 border-b border-[#f4f4f5] pb-2">
-          <span className="text-[#a1a1aa]">Hash SHA-256</span>
-          <span className="font-mono">{data.hashShort}</span>
-        </div>
+        {!data.isApagaLogo && (
+          <>
+            <div className="flex justify-between gap-2 border-b border-[#f4f4f5] pb-2">
+              <span className="text-[#a1a1aa]">Código único</span>
+              <span className="font-mono">{data.uniqueCode}</span>
+            </div>
+            <div className="flex justify-between gap-2 border-b border-[#f4f4f5] pb-2">
+              <span className="text-[#a1a1aa]">Hash SHA-256</span>
+              <span className="font-mono">{data.hashShort}</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-4 rounded-xl border border-[#e4e4e7] bg-[#fafafa] px-4 py-3.5">

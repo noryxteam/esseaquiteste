@@ -83,4 +83,10 @@ export interface ContractViewData {
     lastAccess: string;
     ip: string;
   };
+  /** Contrato avulso da aba Apaga Logo — layout sem ícone de empresa. */
+  isApagaLogo?: boolean;
+  partyPhotos?: {
+    contratado?: string;
+    cliente?: string;
+  };
 }

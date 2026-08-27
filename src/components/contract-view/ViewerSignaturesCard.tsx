@@ -23,12 +23,14 @@ function Slot({
   partyLabel,
   company,
   role,
+  photoUrl,
   onRequestSign,
 }: {
   sig?: ContractSignature;
   partyLabel: string;
   company: string;
   role: "norax" | "cliente";
+  photoUrl?: string;
   onRequestSign: (role: "norax" | "cliente") => void;
 }) {
   const signed = sig?.status === "assinado";
@@ -49,7 +51,10 @@ function Slot({
             role === "norax" ? "bg-transparent" : "bg-white/10 text-white/60"
           )}
         >
-          {role === "norax" ? (
+          {photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+          ) : role === "norax" ? (
             <NoraxLogo invert className="h-5 w-auto" />
           ) : (
             <User className="h-3.5 w-3.5" />
@@ -125,6 +130,7 @@ export function ViewerSignaturesCard({
           partyLabel="Norax"
           company={data.company.legalName || data.company.name}
           role="norax"
+          photoUrl={data.partyPhotos?.contratado}
           onRequestSign={onRequestSign}
         />
         <Slot
@@ -132,6 +138,7 @@ export function ViewerSignaturesCard({
           partyLabel="Cliente"
           company={data.client.company || data.client.name}
           role="cliente"
+          photoUrl={data.partyPhotos?.cliente}
           onRequestSign={onRequestSign}
         />
       </div>

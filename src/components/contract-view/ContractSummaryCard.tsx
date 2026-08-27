@@ -24,9 +24,18 @@ export function ContractSummaryCard({ data }: ContractSummaryCardProps) {
       </div>
 
       <div className="rounded-lg border border-border-subtle bg-surface/40 p-3">
-        <Row label="Empresa" value={data.company.legalName} />
+        <Row
+          label={data.isApagaLogo ? "Contratado" : "Empresa"}
+          value={data.company.legalName || "—"}
+        />
         <Row label="Cliente" value={data.client.name} />
         <Row label="Valor" value={data.value} />
+        {data.isApagaLogo ? (
+          <Row
+            label="Pagamento"
+            value={data.paymentMethod.replace(/\n/g, " · ") || "50% antes · 50% no final"}
+          />
+        ) : null}
         <Row label="Data" value={data.contractDate} />
         <Row label="Status" value={data.statusLabel} />
         <Row

@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import type { ContractDocumentData } from "@/lib/mock-data/contract-document-types";
 import { ContractStatus } from "@/components/contract-view/ContractStatus";
 import { ActionMenu } from "@/components/ui/action-menu";
 import { Button } from "@/components/ui/button-shadcn";
 import { NoraxLogo } from "@/components/brand/NoraxLogo";
 import { formatRelativeFromBrDate } from "@/components/contract-view/viewer-utils";
-import { getContractAdminPath } from "@/lib/contract-routes";
 
 interface ViewerTopBarProps {
   data: ContractDocumentData;
@@ -46,31 +44,6 @@ export function ViewerTopBar({
     <header className="sticky top-0 z-40 shrink-0 border-b border-white/[0.06] bg-[#0a0a0a]/95 backdrop-blur-xl">
       <div className="flex items-center justify-between gap-4 px-4 sm:px-6 h-[64px]">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          {isAdmin ? (
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 -ml-1 px-2 text-white/50 hover:text-white shrink-0"
-            >
-              <Link href={getContractAdminPath(data.id)}>
-                <ArrowLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Voltar</span>
-              </Link>
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 -ml-1 px-2 text-white/50 hover:text-white shrink-0"
-              onClick={onClose}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Voltar</span>
-            </Button>
-          )}
-
           <NoraxLogo invert className="h-7 w-auto shrink-0" />
 
           <div className="min-w-0 ml-3 sm:ml-5 pl-3 sm:pl-5 border-l border-white/[0.08]">

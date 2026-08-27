@@ -42,8 +42,17 @@ export function ViewerInfoPanel({
             <ContractStatus status={data.statusVariant} label={data.statusLabel} />
           </InfoRow>
           <InfoRow label="Cliente">{data.client.name || data.client.company || "—"}</InfoRow>
-          <InfoRow label="Empresa">{data.company.legalName || data.company.name}</InfoRow>
+          <InfoRow label={data.isApagaLogo ? "Contratado" : "Empresa"}>
+            {data.company.legalName || data.company.name}
+          </InfoRow>
           <InfoRow label="Valor">{data.value}</InfoRow>
+          {data.isApagaLogo ? (
+            <InfoRow label="Pagamento">
+              <span className="whitespace-pre-line">
+                {data.paymentMethod || "50% antes\n50% no final"}
+              </span>
+            </InfoRow>
+          ) : null}
           <InfoRow label="Assinado em">{signedAt}</InfoRow>
           <InfoRow label="Validade jurídica">
             <span className="inline-flex items-center gap-1 text-emerald-400/90">

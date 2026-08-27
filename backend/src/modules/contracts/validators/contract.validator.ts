@@ -39,10 +39,16 @@ const clauseBlockSchema = z.object({
 const syncClientSchema = z.object({
   id: z.string().min(1),
   nome: z.string().min(1),
-  empresa: z.string().min(1),
+  empresa: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() ? v.trim() : "Cliente"),
+    z.string().min(1)
+  ),
   email: z.string().min(1),
   /** Gmail de notificação (email de recuperação do setup) */
-  emailNotificacao: z.string().email().optional().nullable(),
+  emailNotificacao: z
+    .union([z.string().email(), z.literal(""), z.null()])
+    .optional()
+    .transform((v) => (v ? v : null)),
   telefone: z.string().optional().nullable(),
   segmento: z.string().optional(),
   cidade: z.string().optional(),
@@ -92,7 +98,12 @@ export const syncContractSchema = z.object({
     .optional(),
   versao: z.number().int().nonnegative().optional(),
   isImmutable: z.boolean().optional(),
-  formaPagamento: z.string().min(1).max(50),
+  formaPagamento: z.preprocess((v) => {
+    if (typeof v !== "string") return "PIX";
+    const trimmed = v.trim();
+    if (!trimmed || trimmed === "—" || trimmed === "-") return "PIX";
+    return trimmed.slice(0, 50);
+  }, z.string().min(1).max(50)),
   parcelas: z.number().int().positive().optional(),
   prazo: z.string().optional().nullable(),
   responsavelId: z.string().optional().nullable(),

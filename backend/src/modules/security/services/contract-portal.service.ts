@@ -21,6 +21,7 @@ import {
 import { resolveDeviceInfo } from "@/modules/security/utils/device-info.utils";
 import { generatePortalToken } from "@/modules/security/utils/portal-token.utils";
 import {
+  isApagaLogoContract,
   mapContractToPortalDocument,
   mapContractToPortalMeta,
 } from "@/modules/security/utils/portal-document.mapper";
@@ -143,9 +144,39 @@ export class ContractPortalService {
     return session.token;
   }
 
+  private async openApagaLogoAccess(
+    contract: { id: string; uniqueSlug: string; numeroContrato: string; cliente: { nome: string } },
+    fingerprint: string
+  ) {
+    const portalToken = await this.ensurePortalToken(
+      contract.id,
+      fingerprint || "apaga-logo",
+      "SESSION_ONLY"
+    );
+    await this.logLastAccess(contract.id, undefined, fingerprint);
+    return {
+      authorized: true as const,
+      requiresCode: false,
+      permission: DevicePermission.SIGNER,
+      canSign: true,
+      canDownloadPdf: true,
+      contractId: contract.id,
+      slug: contract.uniqueSlug,
+      contractNumber: contract.numeroContrato,
+      clientName: contract.cliente.nome,
+      portalToken,
+      isApagaLogo: true,
+    };
+  }
+
   async getAccessStatus(slug: string, fingerprint: string, userId?: string, staffPreview = false) {
     const contract = await contractSecurityRepository.findContractBySlug(slug);
     if (!contract) throw new NotFoundError("Contrato não encontrado.", "CONTRACT_NOT_FOUND");
+
+    // Apaga Logo: link público abre e assina, sem e-mail / dispositivo.
+    if (isApagaLogoContract(contract)) {
+      return this.openApagaLogoAccess(contract, fingerprint);
+    }
 
     // Preview do painel Norax — só com header explícito + staff autenticado.
     // Link do cliente NUNCA manda esse header → nunca libera contrato de outra pessoa.
@@ -271,6 +302,21 @@ export class ContractPortalService {
   ) {
     const contract = await contractSecurityRepository.findContractBySlug(slug);
     if (!contract) throw new NotFoundError("Contrato não encontrado.", "CONTRACT_NOT_FOUND");
+
+    if (isApagaLogoContract(contract)) {
+      const access = await this.openApagaLogoAccess(contract, fingerprint);
+      return {
+        valid: true,
+        requestId: null as string | null,
+        status: "approved" as const,
+        pendingApproval: false,
+        permission: DevicePermission.SIGNER,
+        canSign: true,
+        portalToken: access.portalToken,
+        contractId: contract.id,
+        slug: contract.uniqueSlug,
+      };
+    }
 
     await contractSecurityRepository.expireStaleAccessRequests(contract.id);
 
@@ -952,8 +998,9 @@ export class ContractPortalService {
     const contract = await contractSecurityRepository.findContractBySlug(slug);
     if (!contract) throw new NotFoundError("Contrato não encontrado.", "CONTRACT_NOT_FOUND");
 
+    const apagaLogo = isApagaLogoContract(contract);
     const access = await this.getAccessStatus(slug, fingerprint, userId);
-    if (!access.authorized) {
+    if (!access.authorized && !apagaLogo) {
       if (portalToken) {
         await this.verifyPortalSession(slug, fingerprint, portalToken);
       } else {
@@ -965,14 +1012,17 @@ export class ContractPortalService {
       contract.id,
       fingerprint
     );
-    const permission =
-      userId && access.trustedNoraxDevice
+    const permission = apagaLogo
+      ? DevicePermission.SIGNER
+      : userId && access.trustedNoraxDevice
         ? DevicePermission.SIGNER
         : device?.permission ??
           ("permission" in access ? (access.permission as DevicePermission | undefined) : null) ??
           null;
 
-    assertCanSign(permission);
+    if (!apagaLogo) {
+      assertCanSign(permission);
+    }
 
     // Persistência de assinatura no Prisma (registro oficial)
     const { prisma } = await import("@/database");

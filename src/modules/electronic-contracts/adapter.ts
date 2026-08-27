@@ -3,6 +3,7 @@ import type { ContractViewData } from "@/lib/mock-data/contract-view-types";
 import type { ElectronicContract } from "@/mock/electronic-contracts/types";
 import { getSeedData } from "@/mock/seed";
 import { getClientSetup } from "@/modules/client-setup/store";
+import { APAGA_LOGO_FORMA_PAGAMENTO_LINHAS } from "@/lib/apaga-logo";
 import { paginateClauseBlocks } from "@/modules/contract-builder/pagination";
 import {
   COVER_OVERHEAD_UNITS,
@@ -85,6 +86,10 @@ export function toContractDocumentData(contract: ElectronicContract): ContractDo
   const clientSig = contract.assinaturas.find((s) => s.role === "cliente");
   const noraxSig = contract.assinaturas.find((s) => s.role === "norax");
 
+  const isApagaLogo =
+    contract.editorSettings?.origem === "apaga-logo" || contract.clienteId === "standalone";
+  const contratadoNome = contract.variaveis.empresa.trim();
+
   const base: ContractViewData = {
     id: contract.id,
     number: contract.numeroContrato,
@@ -97,18 +102,18 @@ export function toContractDocumentData(contract: ElectronicContract): ContractDo
         : contract.status.replace(/-/g, " "),
     statusVariant: statusVariant(contract.status),
     company: {
-      name: "Norax",
-      legalName: "Norax Digital Ltda",
-      cnpj: "12.345.678/0001-90",
+      name: isApagaLogo ? contratadoNome || "Contratado" : "Norax",
+      legalName: isApagaLogo ? contratadoNome : "Norax Digital Ltda",
+      cnpj: isApagaLogo ? "" : "12.345.678/0001-90",
       address: "Av. Paulista, 1000",
       city: "São Paulo — SP",
       email: "contato@norax.dev",
       phone: "(11) 3000-0000",
-      representative: contract.responsavelNome,
+      representative: isApagaLogo ? contratadoNome || contract.responsavelNome : contract.responsavelNome,
     },
     client: {
       name: setup?.personal.nome || client?.nome || contract.variaveis.cliente || "",
-      company: setup?.personal.empresa || client?.empresa || contract.variaveis.empresa || "",
+      company: setup?.personal.empresa || client?.empresa || (isApagaLogo ? "" : contract.variaveis.empresa) || "",
       cpfCnpj: setup?.personal.documento || contract.variaveis.cnpj || "",
       address: setup?.personal.endereco || `${client?.cidade ?? ""}`,
       city: setup
@@ -120,7 +125,7 @@ export function toContractDocumentData(contract: ElectronicContract): ContractDo
     },
     value: contract.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
     valueRaw: contract.valor,
-    paymentMethod: contract.formaPagamento,
+    paymentMethod: isApagaLogo ? APAGA_LOGO_FORMA_PAGAMENTO_LINHAS : contract.formaPagamento,
     installments: `${contract.parcelas}x`,
     deadline: contract.prazo,
     template: "Prestação de Serviços",
@@ -176,6 +181,13 @@ export function toContractDocumentData(contract: ElectronicContract): ContractDo
       lastAccess: contract.dispositivosAutorizados[0]?.ultimoAcesso ?? "—",
       ip: "—",
     },
+    isApagaLogo,
+    partyPhotos: isApagaLogo
+      ? {
+          contratado: contract.editorSettings.fotoContratado,
+          cliente: contract.editorSettings.fotoCliente,
+        }
+      : undefined,
   };
 
   return {
