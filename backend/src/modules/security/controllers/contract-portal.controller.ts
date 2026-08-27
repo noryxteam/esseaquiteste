@@ -158,6 +158,7 @@ export const contractPortalController = {
           data: input.data,
           hora: input.hora,
           aceiteEletronico: input.aceiteEletronico,
+          role: input.role,
         },
         req.auth?.userId
       ),

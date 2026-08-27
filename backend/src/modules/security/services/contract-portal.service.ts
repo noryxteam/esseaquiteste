@@ -992,6 +992,7 @@ export class ContractPortalService {
       data?: string;
       hora?: string;
       aceiteEletronico: boolean;
+      role?: "cliente" | "norax" | "empresa";
     },
     userId?: string
   ) {
@@ -999,6 +1000,16 @@ export class ContractPortalService {
     if (!contract) throw new NotFoundError("Contrato não encontrado.", "CONTRACT_NOT_FOUND");
 
     const apagaLogo = isApagaLogoContract(contract);
+    const requestedRole =
+      signature.role === "norax" || signature.role === "empresa" ? "norax" : "cliente";
+
+    if (requestedRole === "norax" && !apagaLogo && !userId) {
+      throw new ForbiddenError(
+        "Este campo é reservado para a assinatura da Norax.",
+        "DEVICE_PERMISSION_DENIED"
+      );
+    }
+
     const access = await this.getAccessStatus(slug, fingerprint, userId);
     if (!access.authorized && !apagaLogo) {
       if (portalToken) {
@@ -1024,21 +1035,27 @@ export class ContractPortalService {
       assertCanSign(permission);
     }
 
-    // Persistência de assinatura no Prisma (registro oficial)
     const { prisma } = await import("@/database");
     const existing = await prisma.contractSignatureRecord.findFirst({
-      where: { contractId: contract.id, role: "cliente" },
+      where:
+        requestedRole === "norax"
+          ? { contractId: contract.id, role: { in: ["norax", "empresa"] } }
+          : { contractId: contract.id, role: "cliente" },
     });
     if (existing) {
-      throw new ValidationError("Cliente já assinou este contrato.");
+      throw new ValidationError(
+        requestedRole === "norax"
+          ? "O contratado já assinou este contrato."
+          : "Cliente já assinou este contrato."
+      );
     }
 
     await prisma.contractSignatureRecord.create({
       data: {
         contractId: contract.id,
-        role: "cliente",
+        role: requestedRole,
         nome: signature.nome,
-        documento: signature.documento,
+        documento: (signature.documento || "").trim() || "—",
         aceiteEletronico: signature.aceiteEletronico,
       },
     });
@@ -1066,14 +1083,17 @@ export class ContractPortalService {
     await contractSecurityRepository.createSecurityEvent({
       contractId: contract.id,
       eventType: "LAST_ACCESS",
-      description: `Assinatura do cliente registrada: ${signature.nome}`,
+      description:
+        requestedRole === "norax"
+          ? `Assinatura do contratado registrada: ${signature.nome}`
+          : `Assinatura do cliente registrada: ${signature.nome}`,
       deviceId: device?.id,
-      metadata: { permission, role: "cliente" },
+      metadata: { permission, role: requestedRole },
     });
 
     return {
       signed: true,
-      role: "cliente" as const,
+      role: requestedRole,
       permission,
       nome: signature.nome,
       documento: signature.documento,

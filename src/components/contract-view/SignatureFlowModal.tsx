@@ -199,7 +199,7 @@ export function SignatureFlowModal({
               <div>
                 <p className="text-sm font-medium text-white">Assinar contrato</p>
                 <p className="text-[11px] text-white/40 mt-0.5">
-                  {role === "norax" ? "Assinatura Norax" : "Assinatura do cliente"}
+                  {role === "norax" ? "Assinatura do contratado" : "Assinatura do cliente"}
                 </p>
               </div>
               <button

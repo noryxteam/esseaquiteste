@@ -216,6 +216,7 @@ export const portalApi = {
       data?: string;
       hora?: string;
       aceiteEletronico: true;
+      role?: "cliente" | "norax";
     }
   ) {
     return portalApiFetch<{ signed: boolean; role: string; permission: string }>(

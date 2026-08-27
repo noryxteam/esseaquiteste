@@ -207,7 +207,7 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
   };
 
   const handleRequestSign = (role: SignRole) => {
-    if (role === "norax" && !isAdmin) {
+    if (role === "norax" && !isAdmin && !doc.isApagaLogo) {
       showInfo("Este campo é reservado para a assinatura da Norax.");
       return;
     }
@@ -238,8 +238,9 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
   }) => {
     if (!signRole) return;
 
-    // Cliente no portal: só API do backend (não existe contrato no localStorage do cliente)
-    if (signRole === "cliente" && !isAdmin) {
+    const signViaPortal = Boolean(doc.uniqueSlug) && (doc.isApagaLogo || (signRole === "cliente" && !isAdmin));
+
+    if (signViaPortal) {
       const fp = getDeviceFingerprint();
       const slug = doc.uniqueSlug || doc.id;
       await portalApi.sign(slug, {
@@ -250,12 +251,14 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
         data: result.data,
         hora: result.hora,
         aceiteEletronico: true,
+        role: signRole === "norax" ? "norax" : "cliente",
       });
 
+      const targetRole = signRole === "norax" ? "empresa" : "cliente";
       const next: ContractDocumentData = {
         ...doc,
         signatures: doc.signatures.map((s) =>
-          s.role === "cliente"
+          s.role === targetRole
             ? {
                 ...s,
                 name: result.nome,
@@ -266,8 +269,6 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
               }
             : s
         ),
-        signaturesCount: doc.signatures.filter((s) => s.status === "assinado").length +
-          (doc.signatures.some((s) => s.role === "cliente" && s.status === "assinado") ? 0 : 1),
       };
       const signedCount = next.signatures.filter((s) => s.status === "assinado").length;
       next.signaturesCount = signedCount;

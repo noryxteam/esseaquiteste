@@ -42,10 +42,11 @@ export const portalSignSchema = z.object({
   fingerprint: z.string().min(16).max(128),
   portalToken: z.string().min(1).optional(),
   nome: z.string().min(2).max(120),
-  documento: z.string().min(5).max(40),
+  documento: z.string().min(1).max(40),
   data: z.string().optional(),
   hora: z.string().optional(),
   aceiteEletronico: z.literal(true),
+  role: z.enum(["cliente", "norax", "empresa"]).optional(),
 });
 
 export const registerTrustedDeviceSchema = z.object({
