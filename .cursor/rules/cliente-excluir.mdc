@@ -1,0 +1,28 @@
+---
+description: Botão Excluir de cliente — ativar/desativar recurso completo
+alwaysApply: true
+---
+
+# Exclusão permanente de cliente
+
+## Recurso ativo
+
+Há um botão **Excluir** no menu (⋯) da lista de clientes. Ele apaga a ficha e tudo ligado a ela (setup, contratos eletrônicos, estrutura em localStorage).
+
+Flag: `src/lib/features/client-permanent-delete.ts` → `CLIENT_PERMANENT_DELETE_ENABLED`
+
+## Quando o usuário pedir para RETIRAR o botão
+
+Frases equivalentes: "pode retirar o botão", "remove o excluir", "desativa exclusão", etc.
+
+**Obrigatório:**
+
+1. Setar `CLIENT_PERMANENT_DELETE_ENABLED = false`
+2. Isso desativa o botão **e** toda a lógica (`deleteClienteCascade` vira no-op)
+3. Não basta esconder o UI — o recurso inteiro deve ficar morto
+
+Arquivos envolvidos (não apagar código; só desligar pela flag):
+
+- `src/lib/features/client-permanent-delete.ts`
+- `src/lib/clientes/delete-cliente-cascade.ts`
+- `src/components/clientes/ClientRow.tsx`

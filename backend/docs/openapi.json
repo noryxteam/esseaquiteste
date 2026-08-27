@@ -1,0 +1,40 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Norax Agency OS API",
+    "description": "API REST do Norax Agency OS — documentação preparada para integração Swagger UI.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "http://localhost:3333/api/v1" }],
+  "paths": {
+    "/clients": {
+      "get": { "summary": "Listar clientes", "tags": ["Clients"] },
+      "post": { "summary": "Criar cliente", "tags": ["Clients"] }
+    },
+    "/clients/{id}": {
+      "get": { "summary": "Buscar cliente", "tags": ["Clients"] },
+      "put": { "summary": "Atualizar cliente", "tags": ["Clients"] },
+      "delete": { "summary": "Excluir cliente (soft delete)", "tags": ["Clients"] }
+    },
+    "/projects": { "get": { "summary": "Listar projetos", "tags": ["Projects"] }, "post": { "summary": "Criar projeto", "tags": ["Projects"] } },
+    "/contracts": { "get": { "summary": "Listar contratos", "tags": ["Contracts"] }, "post": { "summary": "Criar contrato", "tags": ["Contracts"] } },
+    "/meetings": { "get": { "summary": "Listar reuniões", "tags": ["Meetings"] }, "post": { "summary": "Criar reunião", "tags": ["Meetings"] } },
+    "/briefings": { "get": { "summary": "Listar briefings", "tags": ["Briefings"] }, "post": { "summary": "Criar briefing", "tags": ["Briefings"] } },
+    "/finance": { "get": { "summary": "Listar movimentações", "tags": ["Finance"] }, "post": { "summary": "Criar movimentação", "tags": ["Finance"] } },
+    "/tasks": { "get": { "summary": "Listar tarefas", "tags": ["Tasks"] }, "post": { "summary": "Criar tarefa", "tags": ["Tasks"] } },
+    "/files": { "get": { "summary": "Listar arquivos", "tags": ["Files"] }, "post": { "summary": "Registrar arquivo", "tags": ["Files"] } },
+    "/users": { "get": { "summary": "Listar usuários", "tags": ["Users"] }, "post": { "summary": "Criar usuário", "tags": ["Users"] } },
+    "/notifications": { "get": { "summary": "Listar notificações", "tags": ["Notifications"] }, "post": { "summary": "Criar notificação", "tags": ["Notifications"] } },
+    "/timeline": { "get": { "summary": "Listar eventos", "tags": ["Timeline"] }, "post": { "summary": "Criar evento", "tags": ["Timeline"] } },
+    "/reports/dashboard": { "get": { "summary": "KPIs do dashboard", "tags": ["Reports"] } },
+    "/reports/monthly": { "get": { "summary": "Relatórios mensais", "tags": ["Reports"] } },
+    "/auth/login": { "post": { "summary": "Login", "tags": ["Auth"] } },
+    "/auth/refresh": { "post": { "summary": "Renovar token", "tags": ["Auth"] } },
+    "/auth/logout": { "post": { "summary": "Logout", "tags": ["Auth"] } }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    }
+  }
+}

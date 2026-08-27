@@ -1,0 +1,1075 @@
+// Norax Agency OS — Schema do banco de dados
+// Etapa 5A: Modelagem completa com relacionamentos e soft delete
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMINISTRADOR
+  DESIGNER
+  DESENVOLVEDOR
+  FINANCEIRO
+  COMERCIAL
+  CLIENTE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  PENDING
+}
+
+enum UserType {
+  ADMINISTRATOR
+  EMPLOYEE
+  CLIENT
+  PARTNER
+}
+
+enum DeviceType {
+  DESKTOP
+  NOTEBOOK
+  TABLET
+  MOBILE
+  UNKNOWN
+}
+
+/// Permissão de dispositivo no portal do contrato (extensível).
+enum DevicePermission {
+  VIEWER
+  SIGNER
+  // Futuro: ADMINISTRATOR, WITNESS, …
+}
+
+enum ClientStatus {
+  ATIVO
+  INATIVO
+  PROSPECTO
+  CHURN
+}
+
+enum ProjectStatus {
+  PLANEJAMENTO
+  EM_ANDAMENTO
+  PAUSADO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum ProjectPriority {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum ContractStatus {
+  RASCUNHO
+  EM_REVISAO
+  DEFINITIVO
+  AGUARDANDO_ASSINATURA
+  PARCIALMENTE_ASSINADO
+  ASSINADO
+  FINALIZADO
+  ARQUIVADO
+  CANCELADO
+  EXPIRADO
+}
+
+enum ContractLifecycleStep {
+  CRIADO
+  EDITADO
+  CAMPOS_ADICIONADOS
+  REVISADO
+  DEFINITIVO
+  ENVIADO
+  CLIENTE_ACESSOU
+  DISPOSITIVO_AUTORIZADO
+  CLIENTE_LEU
+  ACEITE_ELETRONICO
+  CLIENTE_ASSINOU
+  NORAX_ASSINOU
+  PDF_GERADO
+  ARQUIVADO
+}
+
+enum MeetingStatus {
+  AGENDADA
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+enum FinanceType {
+  RECEITA
+  DESPESA
+  TRANSFERENCIA
+}
+
+enum FinanceStatus {
+  PENDENTE
+  PAGO
+  ATRASADO
+  CANCELADO
+}
+
+enum TaskStatus {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+enum TaskPriority {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum FileCategory {
+  CONTRATO
+  BRIEFING
+  DESIGN
+  DOCUMENTO
+  IMAGEM
+  VIDEO
+  PLANILHA
+  OUTRO
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum TimelineEventType {
+  CLIENTE_CRIADO
+  PROJETO_INICIADO
+  PROJETO_APROVADO
+  PROJETO_CONCLUIDO
+  CONTRATO_ENVIADO
+  CONTRATO_ASSINADO
+  PAGAMENTO_RECEBIDO
+  PAGAMENTO_PENDENTE
+  REUNIAO_REALIZADA
+  ARQUIVO_ENVIADO
+  BRIEFING_CRIADO
+  TAREFA_CONCLUIDA
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET
+  PASSWORD_CHANGE
+  UPLOAD
+  SIGNATURE
+  STATUS_CHANGE
+  RESTORE
+}
+
+enum UploadCategory {
+  DOCUMENTO
+  CONTRATO
+  LOGO
+  IMAGEM
+  PDF
+  BRIEFING
+  GRAVACAO
+  OUTRO
+}
+
+enum StorageProvider {
+  LOCAL
+  S3
+  GCS
+  AZURE
+}
+
+enum AccessCodeStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  CANCELLED
+}
+
+enum AccessCodeSource {
+  STAFF_GENERATED
+  CLIENT_REQUESTED
+  /// Código emitido pelo cliente ao autorizar dispositivo com permissão
+  CLIENT_AUTHORIZED
+}
+
+enum AuthorizedDeviceStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum DeviceAccessRequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+  EXPIRED
+}
+
+enum SecurityEventType {
+  CODE_CREATED
+  CODE_USED
+  CODE_EXPIRED
+  CODE_CANCELLED
+  DEVICE_AUTHORIZED
+  DEVICE_REVOKED
+  DEVICE_RENAMED
+  DEVICE_ACCESS_REQUESTED
+  DEVICE_ACCESS_APPROVED
+  DEVICE_ACCESS_DENIED
+  FIRST_ACCESS
+  LAST_ACCESS
+}
+
+enum PortalSessionType {
+  TRUSTED_DEVICE
+  SESSION_ONLY
+}
+
+// ─── Usuários & Auth ─────────────────────────────────────────────────────────
+
+model User {
+  id          String     @id @default(cuid())
+  nome        String
+  email       String     @unique
+  password    String
+  role        UserRole   @default(COMERCIAL)
+  userType    UserType   @default(EMPLOYEE)
+  status      UserStatus @default(ACTIVE)
+  cargo       String?
+  empresa     String     @default("Norax")
+  avatar      String?
+  ativo       Boolean    @default(true)
+  mfaEnabled  Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  clientsResponsible    Client[]              @relation("ClientResponsavel")
+  projectsResponsible   Project[]             @relation("ProjectResponsavel")
+  tasksResponsible      Task[]                @relation("TaskResponsavel")
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  refreshTokens         RefreshToken[]
+  sessions              Session[]
+  passwordResetTokens   PasswordResetToken[]
+  loginAttempts         LoginAttempt[]
+  meetingParticipations MeetingParticipant[]
+  timelineEvents        TimelineEvent[]       @relation("TimelineUsuario")
+  uploads               Upload[]              @relation("UploadUsuario")
+  contractsResponsible       Contract[]              @relation("ContractResponsible")
+  accessCodesCreated         ContractAccessCode[]    @relation("AccessCodeCreator")
+  securityEvents             ContractSecurityEvent[] @relation("SecurityEventUser")
+  noraxTrustedDevices       NoraxTrustedDevice[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  sessionId String?   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model Session {
+  id           String     @id @default(cuid())
+  userId       String
+  deviceName   String?
+  deviceType   DeviceType @default(UNKNOWN)
+  userAgent    String?
+  ip           String?
+  rememberMe   Boolean    @default(false)
+  lastActiveAt DateTime   @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken RefreshToken?
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  userId    String?
+  success   Boolean
+  ip        String?
+  userAgent String?
+  reason    String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("login_attempts")
+}
+
+// ─── Clientes ────────────────────────────────────────────────────────────────
+
+model Client {
+  id             String       @id @default(cuid())
+  nome           String
+  empresa        String
+  email          String
+  telefone       String?
+  documento      String? // CPF ou CNPJ
+  endereco       String?
+  segmento       String
+  cidade         String
+  estado         String       @db.VarChar(2)
+  status         ClientStatus @default(PROSPECTO)
+  responsavelId  String
+  avatar         String?
+  ultimoContato  DateTime?
+  proximoContato DateTime?
+  tags           String[]     @default([])
+  /// Assistente de configuração concluído
+  setupComplete  Boolean      @default(false)
+  setupCompletedAt DateTime?
+  /// Snapshot JSON do wizard (serviço + pagamento)
+  setupData      Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  responsavel   User              @relation("ClientResponsavel", fields: [responsavelId], references: [id])
+  projects      Project[]
+  contracts     Contract[]
+  meetings      Meeting[]
+  briefings     Briefing[]
+  finance       FinanceMovement[]
+  tasks         Task[]
+  files         File[]
+  timeline      TimelineEvent[]
+
+  @@index([responsavelId])
+  @@index([status])
+  @@index([empresa])
+  @@index([setupComplete])
+  @@index([deletedAt])
+  @@map("clients")
+}
+
+// ─── Projetos ────────────────────────────────────────────────────────────────
+
+model Project {
+  id            String          @id @default(cuid())
+  clienteId     String
+  nome          String
+  descricao     String          @db.Text
+  status        ProjectStatus   @default(PLANEJAMENTO)
+  progresso     Int             @default(0)
+  responsavelId String
+  dataInicio    DateTime
+  prazo         DateTime
+  prioridade    ProjectPriority @default(MEDIA)
+  valor         Decimal         @db.Decimal(12, 2)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  deletedAt     DateTime?
+
+  cliente     Client            @relation(fields: [clienteId], references: [id])
+  responsavel User              @relation("ProjectResponsavel", fields: [responsavelId], references: [id])
+  contracts   Contract[]
+  meetings    Meeting[]
+  briefings   Briefing[]
+  tasks       Task[]
+  files       File[]
+  timeline    TimelineEvent[]
+
+  @@index([clienteId])
+  @@index([responsavelId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+// ─── Contratos ───────────────────────────────────────────────────────────────
+
+model Contract {
+  id              String         @id @default(cuid())
+  clienteId       String
+  projetoId       String
+  numeroContrato  String         @unique
+  titulo          String         @default("Contrato de Prestação de Serviços")
+  valor           Decimal        @db.Decimal(12, 2)
+  status          ContractStatus @default(RASCUNHO)
+  lifecycleStep   ContractLifecycleStep @default(CRIADO)
+  versao          Int            @default(0)
+  isImmutable     Boolean        @default(false)
+  uniqueSlug      String         @unique
+  accessCode      String?
+  accessCodeUsed  Boolean        @default(false)
+  prazo           DateTime?      @db.Date
+  responsavelId   String?
+  dataCriacao     DateTime       @default(now())
+  dataEnvio       DateTime?
+  dataAssinatura  DateTime?
+  formaPagamento  String
+  parcelas        Int            @default(1)
+  assinado        Boolean        @default(false)
+  link            String?
+  token           String         @unique @default(cuid())
+  hashDocumento   String?
+  pdfUrl          String?
+  conteudo        Json?
+  campos          Json           @default("[]")
+  editorSettings  Json           @default("{}")
+  /// Blocos de cláusulas ordenados [{ id, titulo, paragrafos, ordem }]
+  clauseBlocks    Json           @default("[]")
+  templateId      String?
+  /// Snapshot de pagamento / dados auto-preenchidos
+  paymentSnapshot Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+
+  cliente       Client                    @relation(fields: [clienteId], references: [id])
+  projeto       Project                   @relation(fields: [projetoId], references: [id])
+  responsavel   User?                     @relation("ContractResponsible", fields: [responsavelId], references: [id])
+  template      ContractTemplate?         @relation(fields: [templateId], references: [id])
+  finance       FinanceMovement[]
+  timeline      TimelineEvent[]
+  signatures    ContractSignatureRecord[]
+  devices              ContractAuthorizedDevice[]
+  lifecycleLogs        ContractLifecycleLog[]
+  accessCodes          ContractAccessCode[]
+  securityEvents       ContractSecurityEvent[]
+  portalSessions       ContractPortalSession[]
+  deviceAccessRequests ContractDeviceAccessRequest[]
+
+  @@index([clienteId])
+  @@index([projetoId])
+  @@index([status])
+  @@index([uniqueSlug])
+  @@index([templateId])
+  @@index([deletedAt])
+  @@map("contracts")
+}
+
+/// Solicitação de acesso: cliente decide confiança + permissão no painel
+model ContractDeviceAccessRequest {
+  id                 String                    @id @default(cuid())
+  contractId         String
+  codeId             String?
+  fingerprint        String
+  label              String
+  os                 String?
+  browser            String?
+  deviceType         DeviceType                @default(UNKNOWN)
+  ip                 String?
+  userAgent          String?
+  status             DeviceAccessRequestStatus @default(PENDING)
+  approveToken       String                    @unique
+  denyToken          String                    @unique
+  notifiedEmail      String?
+  /// Permissão concedida pelo cliente (só após autorizar)
+  grantedPermission  DevicePermission?
+  /// Código de autorização emitido pelo cliente (hash via ContractAccessCode)
+  issuedCodeId       String?
+  /// Entrega one-time do código em texto ao dispositivo solicitante (limpo após poll)
+  deliveryCode       String?
+  decidedAt          DateTime?
+  expiresAt          DateTime
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([fingerprint])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("contract_device_access_requests")
+}
+
+model ContractSignatureRecord {
+  id                String   @id @default(cuid())
+  contractId        String
+  role              String
+  nome              String
+  documento         String
+  dataAssinatura    DateTime @default(now())
+  aceiteEletronico  Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("contract_signatures")
+}
+
+model ContractAuthorizedDevice {
+  id             String                 @id @default(cuid())
+  contractId     String
+  fingerprint    String
+  label          String
+  os             String?
+  browser        String?
+  deviceType     DeviceType             @default(UNKNOWN)
+  ip             String?
+  status         AuthorizedDeviceStatus @default(ACTIVE)
+  /// Capacidade do dispositivo neste contrato
+  permission     DevicePermission       @default(VIEWER)
+  sessionOnly    Boolean                @default(false)
+  primeiroAcesso DateTime               @default(now())
+  autorizadoEm   DateTime               @default(now())
+  ultimoAcesso   DateTime               @default(now())
+  revokedAt      DateTime?
+  aprovadoPor    String?
+
+  contract       Contract               @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  portalSessions ContractPortalSession[]
+  securityEvents ContractSecurityEvent[] @relation("SecurityEventDevice")
+
+  @@unique([contractId, fingerprint])
+  @@index([contractId])
+  @@index([status])
+  @@index([permission])
+  @@map("contract_authorized_devices")
+}
+
+model ContractAccessCode {
+  id               String            @id @default(cuid())
+  contractId       String
+  codeHash         String
+  codeHint         String
+  status           AccessCodeStatus  @default(ACTIVE)
+  /// Espelho de status ACTIVE — facilita filtros de “código ativo”
+  active           Boolean           @default(true)
+  source           AccessCodeSource  @default(STAFF_GENERATED)
+  /// Permissão embutida (obrigatória em CLIENT_AUTHORIZED)
+  permission       DevicePermission?
+  /// Vincula o código ao fingerprint do dispositivo solicitante
+  fingerprintBound String?
+  accessRequestId  String?
+  expiresAt        DateTime
+  createdById      String?
+  usedAt           DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  contract  Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  createdBy User?    @relation("AccessCodeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([contractId])
+  @@index([codeHash])
+  @@index([status])
+  @@index([active])
+  @@index([permission])
+  @@index([expiresAt])
+  @@map("contract_access_codes")
+}
+
+model ContractSecurityEvent {
+  id          String            @id @default(cuid())
+  contractId  String
+  eventType   SecurityEventType
+  description String
+  userId      String?
+  deviceId    String?
+  metadata    Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime          @default(now())
+
+  contract Contract                  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  user     User?                     @relation("SecurityEventUser", fields: [userId], references: [id], onDelete: SetNull)
+  device   ContractAuthorizedDevice? @relation("SecurityEventDevice", fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([contractId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("contract_security_events")
+}
+
+model ContractPortalSession {
+  id           String            @id @default(cuid())
+  contractId   String
+  deviceId     String?
+  fingerprint  String
+  token        String            @unique
+  sessionType  PortalSessionType @default(SESSION_ONLY)
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime          @default(now())
+  lastActiveAt DateTime          @default(now())
+
+  contract Contract                  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  device   ContractAuthorizedDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([contractId])
+  @@index([fingerprint])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("contract_portal_sessions")
+}
+
+model NoraxTrustedDevice {
+  id             String                 @id @default(cuid())
+  userId         String
+  fingerprint    String
+  label          String
+  os             String?
+  browser        String?
+  deviceType     DeviceType             @default(UNKNOWN)
+  ip             String?
+  status         AuthorizedDeviceStatus @default(ACTIVE)
+  primeiroAcesso DateTime               @default(now())
+  ultimoAcesso   DateTime               @default(now())
+  revokedAt      DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId])
+  @@index([status])
+  @@map("norax_trusted_devices")
+}
+
+model ContractLifecycleLog {
+  id          String                @id @default(cuid())
+  contractId  String
+  step        ContractLifecycleStep
+  titulo      String
+  descricao   String
+  usuario     String
+  createdAt   DateTime              @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("contract_lifecycle_logs")
+}
+
+// ─── Reuniões ────────────────────────────────────────────────────────────────
+
+model Meeting {
+  id          String        @id @default(cuid())
+  clienteId   String
+  projetoId   String
+  titulo      String
+  data        DateTime      @db.Date
+  inicio      String
+  fim         String
+  status      MeetingStatus @default(AGENDADA)
+  gravacao    Boolean       @default(false)
+  transcricao Boolean       @default(false)
+  briefingId  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  cliente       Client               @relation(fields: [clienteId], references: [id])
+  projeto       Project              @relation(fields: [projetoId], references: [id])
+  briefing      Briefing?            @relation(fields: [briefingId], references: [id])
+  participantes MeetingParticipant[]
+  timeline      TimelineEvent[]
+
+  @@index([clienteId])
+  @@index([projetoId])
+  @@index([data])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("meetings")
+}
+
+model MeetingParticipant {
+  id        String   @id @default(cuid())
+  meetingId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+  @@map("meeting_participants")
+}
+
+// ─── Briefings ───────────────────────────────────────────────────────────────
+
+model Briefing {
+  id          String   @id @default(cuid())
+  clienteId   String
+  projetoId   String
+  resumo      String   @db.Text
+  objetivos   Json     @default("[]")
+  escopo      Json     @default("[]")
+  decisoes    Json     @default("[]")
+  pendencias  Json     @default("[]")
+  tarefas     Json     @default("[]")
+  observacoes Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  cliente  Client          @relation(fields: [clienteId], references: [id])
+  projeto  Project         @relation(fields: [projetoId], references: [id])
+  meetings Meeting[]
+
+  @@index([clienteId])
+  @@index([projetoId])
+  @@index([deletedAt])
+  @@map("briefings")
+}
+
+// ─── Financeiro ──────────────────────────────────────────────────────────────
+
+model FinanceMovement {
+  id             String        @id @default(cuid())
+  clienteId      String
+  contratoId     String?
+  tipo           FinanceType
+  categoria      FinanceType
+  valor          Decimal       @db.Decimal(12, 2)
+  status         FinanceStatus @default(PENDENTE)
+  data           DateTime      @db.Date
+  formaPagamento String
+  descricao      String        @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  cliente  Client    @relation(fields: [clienteId], references: [id])
+  contrato Contract? @relation(fields: [contratoId], references: [id])
+
+  @@index([clienteId])
+  @@index([contratoId])
+  @@index([tipo])
+  @@index([status])
+  @@index([data])
+  @@index([deletedAt])
+  @@map("finance_movements")
+}
+
+// ─── Tasks ───────────────────────────────────────────────────────────────────
+
+model Task {
+  id            String       @id @default(cuid())
+  projetoId     String
+  clienteId     String
+  titulo        String
+  descricao     String       @db.Text
+  status        TaskStatus   @default(PENDENTE)
+  responsavelId String
+  prioridade    TaskPriority @default(MEDIA)
+  prazo         DateTime
+  concluidoEm   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+
+  projeto     Project @relation(fields: [projetoId], references: [id])
+  cliente     Client  @relation(fields: [clienteId], references: [id])
+  responsavel User    @relation("TaskResponsavel", fields: [responsavelId], references: [id])
+
+  @@index([projetoId])
+  @@index([clienteId])
+  @@index([responsavelId])
+  @@index([status])
+  @@index([prazo])
+  @@index([deletedAt])
+  @@map("tasks")
+}
+
+// ─── Arquivos ────────────────────────────────────────────────────────────────
+
+model File {
+  id        String       @id @default(cuid())
+  clienteId String
+  projetoId String
+  nome      String
+  tipo      String
+  tamanho   Int
+  url       String
+  categoria FileCategory @default(OUTRO)
+  uploadId  String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
+
+  cliente  Client          @relation(fields: [clienteId], references: [id])
+  projeto  Project         @relation(fields: [projetoId], references: [id])
+  upload   Upload?         @relation(fields: [uploadId], references: [id])
+  timeline TimelineEvent[]
+
+  @@index([clienteId])
+  @@index([projetoId])
+  @@index([categoria])
+  @@index([deletedAt])
+  @@map("files")
+}
+
+// ─── Notificações ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  usuarioId String
+  titulo    String
+  mensagem  String           @db.Text
+  tipo      NotificationType @default(INFO)
+  lida      Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  deletedAt DateTime?
+
+  usuario User @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
+  @@index([lida])
+  @@index([deletedAt])
+  @@map("notifications")
+}
+
+// ─── Timeline ────────────────────────────────────────────────────────────────
+
+model TimelineEvent {
+  id          String            @id @default(cuid())
+  tipo        TimelineEventType
+  titulo      String
+  descricao   String            @db.Text
+  data        DateTime          @db.Date
+  hora        String
+  clienteId   String?
+  projetoId   String?
+  contratoId  String?
+  reuniaoId   String?
+  arquivoId   String?
+  usuarioId   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  deletedAt   DateTime?
+
+  cliente  Client?          @relation(fields: [clienteId], references: [id])
+  projeto  Project?         @relation(fields: [projetoId], references: [id])
+  contrato Contract?        @relation(fields: [contratoId], references: [id])
+  reuniao  Meeting?         @relation(fields: [reuniaoId], references: [id])
+  arquivo  File?            @relation(fields: [arquivoId], references: [id])
+  usuario  User?            @relation("TimelineUsuario", fields: [usuarioId], references: [id])
+
+  @@index([tipo])
+  @@index([clienteId])
+  @@index([projetoId])
+  @@index([data])
+  @@index([deletedAt])
+  @@map("timeline_events")
+}
+
+// ─── Upload (estrutura preparada) ────────────────────────────────────────────
+
+model Upload {
+  id              String          @id @default(cuid())
+  nomeOriginal    String
+  nomeArquivo     String
+  mimeType        String
+  tamanho         Int
+  categoria       UploadCategory  @default(OUTRO)
+  storageProvider StorageProvider @default(LOCAL)
+  storageKey      String
+  url             String?
+  uploadedById    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  uploadedBy User?  @relation("UploadUsuario", fields: [uploadedById], references: [id])
+  files      File[]
+
+  @@index([categoria])
+  @@index([uploadedById])
+  @@index([deletedAt])
+  @@map("uploads")
+}
+
+// ─── Auditoria ─────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  action     AuditAction
+  entity     String
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─── Configurações da empresa (Norax) ───────────────────────────────────────
+
+model CompanySettings {
+  id              String   @id @default(cuid())
+  nome            String
+  razaoSocial     String
+  cnpj            String
+  email           String
+  telefone        String
+  endereco        String
+  cidade          String   @default("São Paulo")
+  estado          String   @default("SP") @db.VarChar(2)
+  banco           String?
+  agencia         String?
+  conta           String?
+  chavePix        String?
+  destinatarioPix String?
+  logoUrl         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("company_settings")
+}
+
+// ─── Modelos de contrato ─────────────────────────────────────────────────────
+
+enum ContractTemplateKind {
+  SITE_INSTITUCIONAL
+  LANDING_PAGE
+  SISTEMA_WEB
+  APLICATIVO
+  LOJA_VIRTUAL
+  IDENTIDADE_VISUAL
+  HOSPEDAGEM
+  MANUTENCAO
+  CONSULTORIA
+  CUSTOM
+}
+
+model ContractTemplate {
+  id          String               @id @default(cuid())
+  kind        ContractTemplateKind
+  nome        String
+  descricao   String?
+  /// Blocos de cláusulas padrão [{ id, titulo, paragrafos, ordem }]
+  clausulas   Json                 @default("[]")
+  ativo       Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  contracts Contract[]
+
+  @@unique([kind])
+  @@map("contract_templates")
+}
+
+// ─── Formulários públicos (link compartilhado com o cliente) ─────────────────
+
+enum ClientFormStatus {
+  DRAFT
+  SENT
+  ANSWERED
+  ARCHIVED
+}
+
+model ClientForm {
+  id        String           @id
+  /// ID do cliente no painel (pode ser mock local ou cuid do banco)
+  clienteId String
+  title     String
+  status    ClientFormStatus @default(DRAFT)
+  slug      String           @unique
+  blocks    Json             @default("[]")
+  version   Int              @default(1)
+  sentAt    DateTime?
+  meta      Json             @default("{}")
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  responses ClientFormResponse[]
+
+  @@index([clienteId])
+  @@index([status])
+  @@map("client_forms")
+}
+
+model ClientFormResponse {
+  id          String   @id @default(cuid())
+  formId      String
+  clienteId   String
+  answers     Json     @default("{}")
+  reviewed    Boolean  @default(false)
+  meta        Json     @default("{}")
+  submittedAt DateTime @default(now())
+
+  form ClientForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@index([clienteId])
+  @@map("client_form_responses")
+}

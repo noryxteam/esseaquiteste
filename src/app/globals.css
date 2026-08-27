@@ -1,0 +1,265 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #09090b;
+  --color-background-subtle: #0c0c0f;
+  --color-surface: #111114;
+  --color-surface-hover: #18181c;
+  --color-surface-elevated: #1c1c21;
+  --color-surface-inset: #0e0e11;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-subtle: rgba(255, 255, 255, 0.04);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+  --color-foreground: #fafafa;
+  --color-foreground-secondary: #e4e4e7;
+  --color-muted: #a1a1aa;
+  --color-muted-foreground: #71717a;
+  --color-accent: #fafafa;
+  --color-accent-foreground: #09090b;
+  --color-state-blue: #60a5fa;
+  --color-state-green: #4ade80;
+  --color-state-orange: #fb923c;
+  --color-state-red: #f87171;
+  --color-state-purple: #a78bfa;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { color-scheme: dark; scroll-behavior: smooth; }
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: rgba(255, 255, 255, 0.12); }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes page-enter {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+.animate-page-enter {
+  animation: page-enter 140ms ease-out forwards;
+}
+
+/* ——— Client project portal (scoped theme) ——— */
+.portal-root {
+  --portal-bg: #09090b;
+  --portal-card: #111114;
+  --portal-card-hover: #18181c;
+  --portal-fg: #fafafa;
+  --portal-muted: #71717a;
+  --portal-border: rgba(255, 255, 255, 0.07);
+  --portal-ring: rgba(255, 255, 255, 0.1);
+  --portal-track: rgba(255, 255, 255, 0.08);
+  --portal-bar: #fafafa;
+  --portal-divide: rgba(255, 255, 255, 0.06);
+  --portal-skeleton: rgba(255, 255, 255, 0.06);
+  background: var(--portal-bg);
+  color: var(--portal-fg);
+}
+
+.portal-root[data-portal-theme="light"] {
+  --portal-bg: #f5f5f4;
+  --portal-card: #ffffff;
+  --portal-card-hover: #fafafa;
+  --portal-fg: #18181b;
+  --portal-muted: #71717a;
+  --portal-border: #e7e7e7;
+  --portal-ring: #e7e7e7;
+  --portal-track: #e7e7e7;
+  --portal-bar: #18181b;
+  --portal-divide: #ebebeb;
+  --portal-skeleton: #e8e8e6;
+}
+
+.portal-shell {
+  background: var(--portal-bg);
+  color: var(--portal-fg);
+  min-height: 100%;
+  transition: background-color 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.portal-fg { color: var(--portal-fg); }
+.portal-muted { color: var(--portal-muted); }
+
+.portal-card {
+  background: var(--portal-card);
+  border-color: var(--portal-border);
+  transition: background-color 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 300ms ease;
+}
+
+.portal-root[data-portal-theme="light"] .portal-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.portal-card-active {
+  box-shadow: 0 0 0 1px rgba(250, 250, 250, 0.12), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.portal-root[data-portal-theme="light"] .portal-card-active {
+  box-shadow: 0 0 0 1px rgba(24, 24, 27, 0.08), 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+.portal-card-done {
+  opacity: 0.92;
+}
+
+.portal-ring { border-color: var(--portal-ring); }
+.portal-divide { border-color: var(--portal-divide); }
+.portal-track { background: var(--portal-track); }
+.portal-bar { background: var(--portal-bar); }
+.portal-skeleton { background: var(--portal-skeleton); }
+
+.portal-line { background: var(--portal-border); }
+.portal-line-done { background: var(--portal-fg); opacity: 0.35; }
+
+.portal-node-pending {
+  background: var(--portal-card);
+  border-color: var(--portal-border);
+  color: var(--portal-muted);
+}
+
+.portal-node-active {
+  background: var(--portal-fg);
+  border-color: var(--portal-fg);
+  color: var(--portal-bg);
+  box-shadow: 0 0 16px rgba(250, 250, 250, 0.25);
+}
+
+.portal-root[data-portal-theme="light"] .portal-node-active {
+  box-shadow: 0 0 14px rgba(24, 24, 27, 0.18);
+}
+
+.portal-node-done {
+  background: var(--portal-fg);
+  border-color: var(--portal-fg);
+  color: var(--portal-bg);
+}
+
+.portal-icon-active {
+  border-color: var(--portal-fg);
+}
+
+.portal-badge-pending {
+  border-color: var(--portal-border);
+  color: var(--portal-muted);
+}
+
+.portal-badge-active {
+  border-color: var(--portal-ring);
+  color: var(--portal-fg);
+}
+
+.portal-badge-done {
+  border-color: var(--portal-border);
+  color: var(--portal-muted);
+}
+
+.portal-icon-btn {
+  border-color: var(--portal-border);
+  color: var(--portal-fg);
+  background: var(--portal-card);
+}
+
+.portal-icon-btn:hover {
+  background: var(--portal-card-hover);
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 210mm !important;
+    background: white !important;
+    color: #18181b !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Esconde o visualizador de verdade (sem ocupar espaço = sem páginas vazias) */
+  [data-viewer-chrome],
+  .print\:hidden {
+    display: none !important;
+  }
+
+  #contract-print-area {
+    display: block !important;
+    position: static !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #contract-print-area,
+  #contract-print-area * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .contract-print-page {
+    box-sizing: border-box;
+    width: 210mm;
+    height: 297mm;
+    max-height: 297mm;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    page-break-after: always;
+    break-after: page;
+    break-inside: avoid;
+  }
+
+  .contract-print-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .contract-print-page > article {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  }
+
+  /* Caixas pretas dos números das cláusulas — forçar no PDF */
+  .contract-clause-num {
+    background-color: #18181b !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .contract-clause-num span {
+    color: #ffffff !important;
+  }
+}

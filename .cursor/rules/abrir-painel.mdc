@@ -1,0 +1,59 @@
+---
+description: Automação para abrir o painel Norax (frontend + backend + Edge)
+alwaysApply: true
+---
+
+# Abrir o painel Norax
+
+Quando o usuário pedir **"abrir o painel"**, **"abre o painel"**, **"iniciar o painel"** ou variações equivalentes:
+
+## Ação obrigatória
+
+Execute **automaticamente** (sem pedir ao usuário para abrir terminal ou digitar comandos):
+
+```bash
+npm run open-panel
+```
+
+Na raiz do projeto: `c:\Users\muril\Documents\Nexora`
+
+- Use `block_until_ms: 0` para rodar em background após confirmar que o script iniciou.
+- Não peça ao usuário para rodar `npm run dev` manualmente.
+- Não abra terminais separados manualmente — o script `scripts/open-panel.mjs` cuida de tudo.
+
+## O que o comando faz
+
+1. Cria `.env.local` e `backend/.env` se não existirem
+2. Instala dependências do frontend e backend se necessário
+3. Executa `prisma generate` e `prisma db push`
+4. Libera portas 3000, 3001 e 3333 (mata processos antigos)
+5. Inicia backend (porta 3333) e frontend (porta 3000)
+6. Aguarda health checks em ambos
+7. Abre **Microsoft Edge** em `http://localhost:3000/dashboard`
+
+## Se falhar
+
+1. Verifique se PostgreSQL está rodando (backend precisa de `DATABASE_URL`)
+2. Execute `npm install` na raiz e em `backend/` se houver erro de módulo
+3. Execute `cd backend && npx prisma generate && npx prisma db push`
+4. Tente `npm run open-panel` novamente
+
+## Credenciais de login
+
+- E-mail: `admin@norax.dev`
+- Senha: `norax123`
+
+## Estrutura do projeto
+
+| Parte | Caminho | Porta |
+|-------|---------|-------|
+| Frontend | raiz (`src/`) | 3000 |
+| Backend | `backend/` | 3333 |
+| Painel | `/dashboard` | — |
+
+## Comandos alternativos (apenas se o usuário pedir explicitamente)
+
+- `npm run dev:all` — sobe frontend + backend sem abrir o navegador
+- `npm run dev:frontend` — só frontend
+- `npm run dev:backend` — só backend
+- Task VS Code: **Norax: Abrir Painel** (`Ctrl+Shift+P` → Tasks: Run Task)
