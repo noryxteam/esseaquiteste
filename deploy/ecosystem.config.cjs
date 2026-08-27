@@ -16,6 +16,7 @@ module.exports = {
       args: "start -H 127.0.0.1 -p 3000",
       env: {
         NODE_ENV: "production",
+        APP_PUBLIC_URL: "http://193.160.119.67:3076",
       },
     },
   ],

@@ -94,6 +94,7 @@ chmod 600 "${APP_DIR}/backend/.env"
 
 cat > "${APP_DIR}/.env.local" <<EOF
 NEXT_PUBLIC_API_URL=${PUBLIC_URL}/api/v1
+APP_PUBLIC_URL=${PUBLIC_URL}
 EOF
 chmod 600 "${APP_DIR}/.env.local"
 
