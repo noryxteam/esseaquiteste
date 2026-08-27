@@ -1,6 +1,6 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, PenLine } from "lucide-react";
 import type { ContractDocumentData } from "@/lib/mock-data/contract-document-types";
 import { ContractStatus } from "@/components/contract-view/ContractStatus";
 import { ActionMenu } from "@/components/ui/action-menu";
@@ -16,6 +16,7 @@ interface ViewerTopBarProps {
   onShare: () => void;
   onHistory: () => void;
   onClose: () => void;
+  onOpenInfo?: () => void;
 }
 
 export function ViewerTopBar({
@@ -26,6 +27,7 @@ export function ViewerTopBar({
   onShare,
   onHistory,
   onClose,
+  onOpenInfo,
 }: ViewerTopBarProps) {
   const updatedLabel = formatRelativeFromBrDate(
     data.history[0]?.date ?? data.createdAt
@@ -65,6 +67,17 @@ export function ViewerTopBar({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {onOpenInfo ? (
+            <Button
+              type="button"
+              size="sm"
+              className="lg:hidden h-8 gap-1.5 bg-white text-black hover:bg-white/90 text-xs"
+              onClick={onOpenInfo}
+            >
+              <PenLine className="h-3.5 w-3.5" />
+              Assinar
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"

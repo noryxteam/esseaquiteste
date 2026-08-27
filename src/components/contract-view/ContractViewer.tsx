@@ -46,6 +46,8 @@ interface ContractViewerProps {
 type ModalKind = null | "history";
 
 const ease = [0.22, 1, 0.36, 1] as const;
+const PAGE_CSS_W = 794;
+const PAGE_CSS_H = 1123;
 
 export function ContractViewer({ data: initialData, onDocumentChange }: ContractViewerProps) {
   const { showInfo, showSuccess } = useFeedback();
@@ -54,6 +56,8 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(110);
   const [pagesOpen, setPagesOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [canSign, setCanSign] = useState(true);
   const [shareFeedback, setShareFeedback] = useState(false);
@@ -70,6 +74,23 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
 
   useEffect(() => {
     setIsAdmin(hasAdminPanelSession());
+  }, []);
+
+  useEffect(() => {
+    const apply = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (mobile) {
+        setPagesOpen(false);
+        const available = Math.max(280, window.innerWidth - 24);
+        setZoom(Math.max(38, Math.min(100, Math.round((available / PAGE_CSS_W) * 100))));
+      } else {
+        setZoom((z) => (z < 80 ? 110 : z));
+      }
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
   }, []);
 
   useEffect(() => {
@@ -104,7 +125,12 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
     setCurrentPage(next);
     scrollingTo.current = next;
     const el = pageRefs.current.get(next);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const root = scrollRef.current;
+    if (el && root) {
+      const top = el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - 8;
+      root.scrollTo({ top, behavior: "smooth" });
+    }
+    if (window.innerWidth < 1024) setPagesOpen(false);
     window.setTimeout(() => {
       scrollingTo.current = null;
     }, 450);
@@ -290,7 +316,7 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
     <>
     <div
       data-viewer-chrome="shell"
-      className="flex flex-col h-screen min-h-screen bg-[#050505] text-white overflow-hidden print:hidden"
+      className="flex flex-col h-dvh min-h-0 bg-[#050505] text-white overflow-hidden print:hidden"
     >
       <ViewerTopBar
         data={doc}
@@ -300,6 +326,7 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
         onShare={handleShare}
         onHistory={() => setModal("history")}
         onClose={handleClose}
+        onOpenInfo={() => setInfoOpen(true)}
       />
 
       <div className="flex flex-1 min-h-0">
@@ -309,10 +336,12 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
           open={pagesOpen}
           onToggle={() => setPagesOpen((v) => !v)}
           onPageChange={goToPage}
+          overlay={isMobile}
         />
 
         <div className="relative flex-1 min-w-0 flex flex-col bg-[#0c0c0c] min-h-0">
           <main ref={scrollRef} className="relative flex-1 min-h-0 overflow-auto">
+            {!isMobile ? (
             <div className="sticky top-0 z-10 flex justify-center pt-4 pb-2 pointer-events-none print:hidden">
               <div className="pointer-events-auto inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-[#111]/92 backdrop-blur-md px-1.5 py-1 shadow-lg">
                 <button
@@ -336,25 +365,31 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
                 </button>
               </div>
             </div>
+            ) : null}
 
-            <div className="flex justify-center px-10 xl:px-16 py-6 pb-20">
-              <div
-                className="origin-top will-change-transform"
-                style={{
-                  transform: `scale(${zoom / 100})`,
-                  transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
-                }}
-              >
-                <div className="flex flex-col gap-10">
-                  {doc.pages.map((page) => (
+            <div className={`flex justify-center py-6 pb-24 ${isMobile ? "px-3" : "px-10 xl:px-16"}`}>
+              <div className="flex flex-col gap-8">
+                {doc.pages.map((page) => (
+                  <div
+                    key={page.id}
+                    data-page-id={page.id}
+                    ref={(el) => {
+                      if (el) pageRefs.current.set(page.id, el);
+                      else pageRefs.current.delete(page.id);
+                    }}
+                    className="rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.45)] overflow-hidden mx-auto"
+                    style={{
+                      width: PAGE_CSS_W * (zoom / 100),
+                      height: PAGE_CSS_H * (zoom / 100),
+                    }}
+                  >
                     <div
-                      key={page.id}
-                      data-page-id={page.id}
-                      ref={(el) => {
-                        if (el) pageRefs.current.set(page.id, el);
-                        else pageRefs.current.delete(page.id);
+                      className="origin-top-left"
+                      style={{
+                        width: PAGE_CSS_W,
+                        height: PAGE_CSS_H,
+                        transform: `scale(${zoom / 100})`,
                       }}
-                      className="rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
                     >
                       <ContractPage
                         data={doc}
@@ -364,8 +399,8 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
                         onRequestSign={handleRequestSign}
                       />
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
           </main>
@@ -408,6 +443,19 @@ export function ContractViewer({ data: initialData, onDocumentChange }: Contract
           onDownload={() => downloadContractPdf()}
           onRequestSign={handleRequestSign}
         />
+        {isMobile && infoOpen ? (
+          <ViewerInfoPanel
+            data={doc}
+            isAdmin={isAdmin}
+            onDownload={() => downloadContractPdf()}
+            onRequestSign={(role) => {
+              setInfoOpen(false);
+              handleRequestSign(role);
+            }}
+            variant="sheet"
+            onClose={() => setInfoOpen(false)}
+          />
+        ) : null}
       </div>
 
       <SignatureFlowModal
