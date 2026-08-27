@@ -4,7 +4,8 @@ set -euo pipefail
 APP_DIR="/var/www/norax"
 REPO_URL="https://github.com/noryxteam/esseaquiteste.git"
 PUBLIC_HOST="${PUBLIC_HOST:-193.160.119.67}"
-PUBLIC_URL="http://${PUBLIC_HOST}"
+PUBLIC_PORT="${PUBLIC_PORT:-3076}"
+PUBLIC_URL="http://${PUBLIC_HOST}:${PUBLIC_PORT}"
 SECRETS_FILE="/root/.norax-secrets"
 
 log() {
@@ -122,19 +123,15 @@ log "Sincronizando banco..."
 log "Compilando frontend..."
 npm run build --prefix "${APP_DIR}"
 
-log "Configurando Nginx..."
-rm -f /etc/nginx/sites-enabled/default
+log "Configurando Nginx só na porta ${PUBLIC_PORT} (não mexe na 80)..."
 cp "${APP_DIR}/deploy/nginx-norax.conf" /etc/nginx/sites-available/norax
 ln -sfn /etc/nginx/sites-available/norax /etc/nginx/sites-enabled/norax
 nginx -t
 systemctl enable --now nginx
 systemctl reload nginx
 
-log "Liberando HTTP no firewall..."
-ufw allow OpenSSH >/dev/null 2>&1 || ufw allow 22 >/dev/null 2>&1 || true
-ufw allow 80/tcp >/dev/null 2>&1 || true
-ufw allow 443/tcp >/dev/null 2>&1 || true
-ufw --force enable >/dev/null 2>&1 || true
+log "Liberando só a porta ${PUBLIC_PORT}..."
+ufw allow "${PUBLIC_PORT}/tcp" >/dev/null 2>&1 || true
 
 log "Iniciando painel com PM2..."
 pm2 delete norax-api norax-web >/dev/null 2>&1 || true
